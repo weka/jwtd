@@ -58,6 +58,11 @@ version(UseOpenSSL) {
 		}
 
 		pub = EC_POINT_new(curve);
+		if(null == pub) {
+			EC_GROUP_free(curve);
+
+			throw new Exception("Can't allocate EC point.");
+		}
 
 		if (1 != EC_POINT_mul(curve, pub, prv, null, null, null)) {
 			EC_GROUP_free(curve);
@@ -164,9 +169,18 @@ version(UseOpenSSL) {
 
 			HMAC_CTX ctx;
 			HMAC_CTX_init(&ctx);
-			HMAC_Init_ex(&ctx, key.ptr, cast(int)key.length, evp, null);
-			HMAC_Update(&ctx, cast(const(ubyte)*)msg.ptr, cast(ulong)msg.length);
-			HMAC_Final(&ctx, cast(ubyte*)sign.ptr, &signLen);
+			if(0 == HMAC_Init_ex(&ctx, key.ptr, cast(int)key.length, evp, null)) {
+				HMAC_CTX_cleanup(&ctx);
+				throw new Exception("Can't initialize HMAC context.");
+			}
+			if(0 == HMAC_Update(&ctx, cast(const(ubyte)*)msg.ptr, cast(ulong)msg.length)) {
+				HMAC_CTX_cleanup(&ctx);
+				throw new Exception("Can't update HMAC.");
+			}
+			if(0 == HMAC_Final(&ctx, cast(ubyte*)sign.ptr, &signLen)) {
+				HMAC_CTX_cleanup(&ctx);
+				throw new Exception("Can't finalize HMAC.");
+			}
 			HMAC_CTX_cleanup(&ctx);
 		}
 
@@ -177,11 +191,16 @@ version(UseOpenSSL) {
 			BIO* bpo = BIO_new_mem_buf(cast(char*)key.ptr, -1);
 			if(bpo is null)
 				throw new Exception("Can't load the key.");
-			PEM_read_bio_RSAPrivateKey(bpo, &rsa_private, null, null);
+			RSA* rsa = PEM_read_bio_RSAPrivateKey(bpo, &rsa_private, null, null);
 			BIO_free(bpo);
-			if(rsa_private is null)
+			if(rsa is null) {
+				RSA_free(rsa_private);
 				throw new Exception("Can't create RSA key.");
-			RSA_sign(type, hash, signLen, sign.ptr, &signLen, rsa_private);
+			}
+			if(0 == RSA_sign(type, hash, signLen, sign.ptr, &signLen, rsa_private)) {
+				RSA_free(rsa_private);
+				throw new Exception("Can't sign RSA message digest.");
+			}
 			RSA_free(rsa_private);
 		}
 
@@ -270,10 +289,12 @@ version(UseOpenSSL) {
 			BIO* bpo = BIO_new_mem_buf(cast(char*)key.ptr, -1);
 			if(bpo is null)
 				throw new Exception("Can't load key to the BIO.");
-			PEM_read_bio_RSA_PUBKEY(bpo, &rsa_public, null, null);
+			RSA* rsa = PEM_read_bio_RSA_PUBKEY(bpo, &rsa_public, null, null);
 			BIO_free(bpo);
-			if(rsa_public is null)
+			if(rsa is null) {
+				RSA_free(rsa_public);
 				throw new Exception("Can't create RSA key.");
+			}
 			ubyte[] sign = cast(ubyte[])signature;
 			int ret = RSA_verify(type, hash, signLen, sign.ptr, len, rsa_public);
 			RSA_free(rsa_public);
@@ -286,6 +307,9 @@ version(UseOpenSSL) {
 			ECDSA_SIG* sig = null;
 
 			sig = d2i_ECDSA_SIG(&sig, cast(const (ubyte)**)&c, cast(int) key.length);
+			if (sig is null) {
+				throw new Exception("Can't decode ECDSA signature.");
+			}
 			int ret =  ECDSA_do_verify(hash, hashLen, sig, eckey);
 
 			ECDSA_SIG_free(sig);
