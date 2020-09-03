@@ -7,6 +7,7 @@ version(UseOpenSSL) {
 	import deimos.openssl.rsa;
 	import deimos.openssl.hmac;
 	import deimos.openssl.err;
+    import deimos.openssl.engine;
 
 	import jwtd.jwt : JWTAlgorithm, SignException, VerifyException;
 
