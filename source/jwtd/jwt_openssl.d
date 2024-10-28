@@ -167,23 +167,31 @@ version(UseOpenSSL) {
 		void sign_hs(const(EVP_MD)* evp, uint signLen) {
 			sign = new ubyte[signLen];
 
-			HMAC_CTX ctx;
-			version(OpenSSL11) {
-				scope(exit) HMAC_CTX_reset(&ctx);
-				HMAC_CTX_reset(&ctx);
-			}
-			else {
-				scope(exit) HMAC_CTX_cleanup(&ctx);
-				HMAC_CTX_init(&ctx);
-			}
-			if(0 == HMAC_Init_ex(&ctx, key.ptr, cast(int)key.length, evp, null)) {
-				throw new Exception("Can't initialize HMAC context.");
-			}
-			if(0 == HMAC_Update(&ctx, cast(const(ubyte)*)msg.ptr, cast(ulong)msg.length)) {
-				throw new Exception("Can't update HMAC.");
-			}
-			if(0 == HMAC_Final(&ctx, cast(ubyte*)sign.ptr, &signLen)) {
-				throw new Exception("Can't finalize HMAC.");
+			version(OpenSSL30) {
+				auto ret = HMAC(evp, key.ptr, cast(int)key.length, cast(const(ubyte)*)msg.ptr, cast(ulong)msg.length, cast(ubyte*)sign.ptr, &signLen);
+				if (ret is null) {
+					throw new Exception("Can't initialize HMAC context.");
+				}
+			} else {
+				HMAC_CTX ctx;
+
+				version(OpenSSL11) {
+					scope(exit) HMAC_CTX_reset(&ctx);
+					HMAC_CTX_reset(&ctx);
+				}
+				else {
+					scope(exit) HMAC_CTX_cleanup(&ctx);
+					HMAC_CTX_init(&ctx);
+				}
+				if(0 == HMAC_Init_ex(&ctx, key.ptr, cast(int)key.length, evp, null)) {
+					throw new Exception("Can't initialize HMAC context.");
+				}
+				if(0 == HMAC_Update(&ctx, cast(const(ubyte)*)msg.ptr, cast(ulong)msg.length)) {
+					throw new Exception("Can't update HMAC.");
+				}
+				if(0 == HMAC_Final(&ctx, cast(ubyte*)sign.ptr, &signLen)) {
+					throw new Exception("Can't finalize HMAC.");
+				}
 			}
 		}
 
