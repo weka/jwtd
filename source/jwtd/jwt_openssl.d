@@ -7,7 +7,7 @@ version(UseOpenSSL) {
 	import deimos.openssl.rsa;
 	import deimos.openssl.hmac;
 	import deimos.openssl.err;
-    import deimos.openssl.engine;
+        import deimos.openssl.engine;
 
 	import jwtd.jwt : JWTAlgorithm, SignException, VerifyException;
 
@@ -75,9 +75,9 @@ version(UseOpenSSL) {
         import std.exception : assertThrown;
 
         assertThrown(getESKeypair(0, "key"));
-        assertThrown(getESKeypair(NID_secp256k1, "bogus_key"));
-        assertThrown(getESKeypair(NID_secp256k1, null));
-        assertThrown(getESKeypair(NID_secp256k1, private256));
+        assertThrown(getESKeypair(NID_X9_62_prime256v1, "bogus_key"));
+        assertThrown(getESKeypair(NID_X9_62_prime256v1, null));
+        assertThrown(getESKeypair(NID_X9_62_prime256v1, private256));
     }
 
 	EC_KEY* getESPrivateKey(uint curve_type, string key) {
@@ -118,8 +118,8 @@ version(UseOpenSSL) {
     unittest {
         import std.exception : assertThrown;
         assertThrown(getESPrivateKey(0, "key"));
-        assertThrown(getESPrivateKey(NID_secp256k1, "bogus_key"));
-        assertThrown(getESPrivateKey(NID_secp256k1, null));
+        assertThrown(getESPrivateKey(NID_X9_62_prime256v1, "bogus_key"));
+        assertThrown(getESPrivateKey(NID_X9_62_prime256v1, null));
     }
 
 	EC_KEY* getESPublicKey(uint curve_type, string key) {
@@ -156,9 +156,9 @@ version(UseOpenSSL) {
 
         assertThrown(getESPublicKey(0, "key"));
 
-        auto eckey = getESPublicKey(NID_secp256k1, es256_public);
+        auto eckey = getESPublicKey(NID_X9_62_prime256v1, es256_public);
         EC_KEY_free(eckey);
-        assertThrown(getESPublicKey(NID_secp256k1, null));
+        assertThrown(getESPublicKey(NID_X9_62_prime256v1, null));
     }
 
 	string sign(string msg, string key, JWTAlgorithm algo = JWTAlgorithm.HS256) {
@@ -269,7 +269,7 @@ version(UseOpenSSL) {
 			case JWTAlgorithm.ES256: {
 				ubyte[] hash = new ubyte[SHA256_DIGEST_LENGTH];
 				SHA256(cast(const(ubyte)*)msg.ptr, msg.length, hash.ptr);
-				sign_es(NID_secp256k1, hash.ptr, SHA256_DIGEST_LENGTH);
+				sign_es(NID_X9_62_prime256v1, hash.ptr, SHA256_DIGEST_LENGTH);
 				break;
 			}
 			case JWTAlgorithm.ES384: {
@@ -358,7 +358,7 @@ version(UseOpenSSL) {
 			case JWTAlgorithm.ES256:{
 				ubyte[] hash = new ubyte[SHA256_DIGEST_LENGTH];
 				SHA256(cast(const(ubyte)*)signing_input.ptr, signing_input.length, hash.ptr);
-				return verify_es(NID_secp256k1, hash.ptr, SHA256_DIGEST_LENGTH );
+				return verify_es(NID_X9_62_prime256v1, hash.ptr, SHA256_DIGEST_LENGTH );
 			}
 			case JWTAlgorithm.ES384:{
 				ubyte[] hash = new ubyte[SHA384_DIGEST_LENGTH];
