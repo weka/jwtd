@@ -216,6 +216,12 @@ version(UseOpenSSL) {
 		}
 
 		void sign_es(uint curve_type, ubyte* hash, int hashLen) {
+			// Unlike other applications that format their signatures as ASN.1 DER bytes,
+			// JWS ECDSA signatures however need to be formatted instead as the EC point R
+			// and S unsigned integers converted to byte arrays and concatenated. See
+			// the following resources for more info:
+			// https://datatracker.ietf.org/doc/html/rfc7515#page-45
+			// https://datatracker.ietf.org/doc/html/rfc7515#appendix-A.3
 			EC_KEY* eckey = getESPrivateKey(curve_type, key);
 			scope(exit) EC_KEY_free(eckey);
 
@@ -225,11 +231,18 @@ version(UseOpenSSL) {
 			}
 			scope(exit) ECDSA_SIG_free(sig);
 
-			sign = new ubyte[ECDSA_size(eckey)];
-			ubyte* c = sign.ptr;
-			if(!i2d_ECDSA_SIG(sig, &c)) {
-				throw new Exception("Convert sign to DER format failed.");
-			}
+			int sig_len = hashLen * 2; // to hold the hashes of R and S keys
+			int r_len = BN_num_bytes(sig.r);
+			int s_len = BN_num_bytes(sig.s);
+
+			string raw_sig;
+			raw_sig.length = sig_len;
+
+			// Get the bytes for R and S, right-aligned, and padded with leading zeros
+			// if necessary.
+			BN_bn2bin(sig.r, cast(ubyte*)raw_sig.ptr + ((sig_len / 2) - r_len));
+			BN_bn2bin(sig.s, cast(ubyte*)raw_sig.ptr + sig_len - s_len);
+			sign = cast(ubyte[])raw_sig.dup;
 		}
 
 		switch(algo) {
@@ -314,19 +327,25 @@ version(UseOpenSSL) {
 			return ret == 1;
 		}
 
-		bool verify_es(uint curve_type, ubyte* hash, int hashLen ) {
+		bool verify_es(uint curve_type, ubyte* hash, int hashLen) {
+			// See relevant comment in sign_es or go through the example in
+			// https://datatracker.ietf.org/doc/html/rfc7515#appendix-A.3 in
+			// order to follow the logic behind the R and S parameters below.
 			EC_KEY* eckey = getESPublicKey(curve_type, key);
 			scope(exit) EC_KEY_free(eckey);
 
 			ubyte* c = cast(ubyte*)signature.ptr;
-			ECDSA_SIG* sig = null;
-			sig = d2i_ECDSA_SIG(&sig, cast(const (ubyte)**)&c, cast(int) key.length);
+			auto key_len = signature.length / 2;
+
+			ECDSA_SIG *sig = ECDSA_SIG_new();
+			scope(exit) ECDSA_SIG_free(sig);
 			if (sig is null) {
 				throw new Exception("Can't decode ECDSA signature.");
 			}
-			scope(exit) ECDSA_SIG_free(sig);
+			sig.r = BN_bin2bn(c, cast(int)key_len, null);
+			sig.s = BN_bin2bn(c + key_len, cast(int)key_len, null);
 
-			int ret =  ECDSA_do_verify(hash, hashLen, sig, eckey);
+			int ret = ECDSA_do_verify(hash, hashLen, sig, eckey);
 			return ret == 1;
 		}
 
