@@ -150,6 +150,36 @@ version(UseOpenSSL) {
 		return eckey;
 	}
 
+	EVP_PKEY *getEdPublicKey(string key) {
+	    EVP_PKEY* pkey;
+
+		BIO* bpo = BIO_new_mem_buf(cast(char*)key.ptr, -1);
+		if(bpo is null) {
+		    throw new Exception("Can't load the key.");
+		}
+		scope(exit) BIO_free(bpo);
+        pkey = PEM_read_bio_PUBKEY(bpo, null, null, null);
+        if (pkey is null) {
+            throw new Exception("Can't load public key from PEM.");
+        }
+        return pkey;
+	}
+
+	EVP_PKEY *getEdPrivateKey(string key) {
+	    EVP_PKEY* pkey;
+
+		BIO* bpo = BIO_new_mem_buf(cast(char*)key.ptr, -1);
+		if(bpo is null) {
+		    throw new Exception("Can't load the key.");
+		}
+		scope(exit) BIO_free(bpo);
+		pkey = PEM_read_bio_PrivateKey(bpo, null, null, null);
+		if (pkey is null) {
+		    throw new Exception("Can't load private key from PEM.");
+		}
+        return pkey;
+	}
+
     unittest {
         import jwtd.test;
         import std.exception : assertThrown;
@@ -167,31 +197,9 @@ version(UseOpenSSL) {
 		void sign_hs(const(EVP_MD)* evp, uint signLen) {
 			sign = new ubyte[signLen];
 
-			version(OpenSSL30) {
-				auto ret = HMAC(evp, key.ptr, cast(int)key.length, cast(const(ubyte)*)msg.ptr, cast(ulong)msg.length, cast(ubyte*)sign.ptr, &signLen);
-				if (ret is null) {
-					throw new Exception("Can't initialize HMAC context.");
-				}
-			} else {
-				HMAC_CTX ctx;
-
-				version(OpenSSL11) {
-					scope(exit) HMAC_CTX_reset(&ctx);
-					HMAC_CTX_reset(&ctx);
-				}
-				else {
-					scope(exit) HMAC_CTX_cleanup(&ctx);
-					HMAC_CTX_init(&ctx);
-				}
-				if(0 == HMAC_Init_ex(&ctx, key.ptr, cast(int)key.length, evp, null)) {
-					throw new Exception("Can't initialize HMAC context.");
-				}
-				if(0 == HMAC_Update(&ctx, cast(const(ubyte)*)msg.ptr, cast(ulong)msg.length)) {
-					throw new Exception("Can't update HMAC.");
-				}
-				if(0 == HMAC_Final(&ctx, cast(ubyte*)sign.ptr, &signLen)) {
-					throw new Exception("Can't finalize HMAC.");
-				}
+			auto ret = HMAC(evp, key.ptr, cast(int)key.length, cast(const(ubyte)*)msg.ptr, cast(ulong)msg.length, cast(ubyte*)sign.ptr, &signLen);
+			if (ret is null) {
+				throw new Exception("Can't initialize HMAC context.");
 			}
 		}
 
@@ -230,6 +238,38 @@ version(UseOpenSSL) {
 			if(!i2d_ECDSA_SIG(sig, &c)) {
 				throw new Exception("Convert sign to DER format failed.");
 			}
+		}
+
+		/// Sign using Edwards curve, which includes an intrinsic hash as part of the key.
+		/// Ed25519 uses SHA512 (64 byte hash), and Ed448 uses SHAKE256 (114 byte hash).
+		/// Thus we simply encode the hashing inside this function.
+		void sign_ed() {
+		    EVP_PKEY *pkey = getEdPrivateKey(key);
+			scope(exit) EVP_PKEY_free(pkey);
+
+			// EdDSA implies hash as part of the algo
+			auto md_ctx = EVP_MD_CTX_new();
+			if (md_ctx is null) {
+			    throw new Exception("Can't get MD context.");
+			}
+			scope(exit) EVP_MD_CTX_free(md_ctx);
+
+            if (EVP_DigestSignInit(md_ctx, null, null, null, pkey) == 0) {
+                throw new Exception("Can't initialize digest.");
+            }
+
+            // Get the signature length - we can do this for an empty message as the hash length
+            // is not dependent on the message length.
+            ulong sigLen = 0;
+            if (EVP_DigestSign(md_ctx, null, &sigLen, null, 0) == 0) {
+                throw new Exception("Can't determine digest length.");
+            }
+
+            // Now do the signature for real with the right length.
+            sign = new ubyte[sigLen];
+            if (EVP_DigestSign(md_ctx, cast(ubyte *)sign.ptr, &sigLen, cast(const (ubyte)*)msg.ptr, msg.length) == 0) {
+                throw new Exception("Can't sign message.");
+            }
 		}
 
 		switch(algo) {
@@ -284,6 +324,10 @@ version(UseOpenSSL) {
 				sign_es(NID_secp521r1, hash.ptr, SHA512_DIGEST_LENGTH);
 				break;
 			}
+			case JWTAlgorithm.EdDSA: {
+			    sign_ed();
+				break;
+			}
 
 			default:
 				throw new SignException("Wrong algorithm.");
@@ -330,6 +374,28 @@ version(UseOpenSSL) {
 			return ret == 1;
 		}
 
+		bool verify_ed() {
+		    EVP_PKEY* pkey = getEdPublicKey(key);
+			scope(exit) EVP_PKEY_free(pkey);
+
+			// EdDSA implies hash as part of the algo
+			auto md_ctx = EVP_MD_CTX_new();
+			if (md_ctx is null) {
+			    throw new Exception("Can't get MD context.");
+			}
+			scope(exit) EVP_MD_CTX_free(md_ctx);
+            if (EVP_DigestVerifyInit(md_ctx, null, null, null, pkey) == 0) {
+                throw new Exception("Can't initialize digest.");
+            }
+
+         	ubyte* sig = cast(ubyte*)signature.ptr;
+            ubyte* m = cast(ubyte*)signing_input.ptr;
+            long sigLen = signature.length;
+            long mLen = signing_input.length;
+
+            return EVP_DigestVerify(md_ctx, sig, sigLen, m, mLen) == 1;
+		}
+
 		switch(algo) {
 			case JWTAlgorithm.NONE: {
 				return key.length == 0;
@@ -369,6 +435,9 @@ version(UseOpenSSL) {
 				ubyte[] hash = new ubyte[SHA512_DIGEST_LENGTH];
 				SHA512(cast(const(ubyte)*)signing_input.ptr, signing_input.length, hash.ptr);
 				return verify_es(NID_secp521r1, hash.ptr, SHA512_DIGEST_LENGTH );
+			}
+			case JWTAlgorithm.EdDSA: {
+			    return verify_ed();
 			}
 
 			default:

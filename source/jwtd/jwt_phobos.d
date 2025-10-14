@@ -39,6 +39,7 @@ version (UsePhobos) {
 			case JWTAlgorithm.ES256:
 			case JWTAlgorithm.ES384:
 			case JWTAlgorithm.ES512:
+			case JWTAlgorithm.EdDSA:
 				throw new SignException("Unsupported algorithm.");
 			default:
 				throw new SignException("Wrong algorithm.");
@@ -61,6 +62,7 @@ version (UsePhobos) {
 			case JWTAlgorithm.ES256:
 			case JWTAlgorithm.ES384:
 			case JWTAlgorithm.ES512:
+			case JWTAlgorithm.EdDSA:
 				throw new SignException("Unsupported algorithm.");
 			default:
 				throw new VerifyException("Wrong algorithm.");
@@ -85,4 +87,3 @@ version (UsePhobos) {
         }
     }
 }
-

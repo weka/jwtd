@@ -27,7 +27,8 @@ enum JWTAlgorithm : string {
 	RS512 = "RS512",
 	ES256 = "ES256",
 	ES384 = "ES384",
-	ES512 = "ES512"
+	ES512 = "ES512",
+	EdDSA = "EdDSA"
 }
 
 class SignException : Exception {
@@ -118,8 +119,13 @@ JSONValue decode(string token, string delegate(ref JSONValue jose) lazyKey) {
 
 	JWTAlgorithm alg;
 	try {
+	    auto algName = toUpper(header["alg"].str);
 		// toUpper for none
-		alg = to!(JWTAlgorithm)(toUpper(header["alg"].str()));
+		if (algName == "EDDSA") {
+		    alg = JWTAlgorithm.EdDSA;
+		} else {
+		    alg = to!(JWTAlgorithm)(algName);
+		}
 	} catch(Exception e) {
 		throw new VerifyException("Algorithm is incorrect.");
 	}
@@ -176,6 +182,7 @@ unittest {
             JWTAlgorithm.ES256 : Keys(es256_private, es256_public),
             JWTAlgorithm.ES384 : Keys(es384_private, es384_public),
             JWTAlgorithm.ES512 : Keys(es512_private, es512_public),
+            JWTAlgorithm.EdDSA : Keys(ed25519_private, ed25519_public),
         ];
     }
 

@@ -150,4 +150,16 @@ yQcf/J8EltCqbKYT0dH5qJFlc6WKQIRNms9DNRhZmAPCbFVgcLCvXMg6X9rmHM6q
 -----END PUBLIC KEY-----
 EOS";
 
+    string ed25519_private = q"EOS
+-----BEGIN PRIVATE KEY-----
+MC4CAQAwBQYDK2VwBCIEIJND1JPxhYzbvlwUM2vkcjXpuBh0/qKjdkHbEy88eOjd
+-----END PRIVATE KEY-----
+EOS";
+
+    string ed25519_public = q"EOS
+-----BEGIN PUBLIC KEY-----
+MCowBQYDK2VwAyEApzmKzPHspeKgp5gJiAkYZXMegomna4DWsPV9Pg6VRyc=
+-----END PUBLIC KEY-----
+EOS";
+
 } // version (unittest)
