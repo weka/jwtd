@@ -162,4 +162,18 @@ MCowBQYDK2VwAyEApzmKzPHspeKgp5gJiAkYZXMegomna4DWsPV9Pg6VRyc=
 -----END PUBLIC KEY-----
 EOS";
 
+    string ed448_private = q"EOS
+-----BEGIN PRIVATE KEY-----
+MEcCAQAwBQYDK2VxBDsEOYaX+nGO8coh9GZ7qgauzOOaogvUeXlSyaPyT13eVUE8
+i1l9OMyHUs25rGAKsxZvK45a/I8VQ+84qg==
+-----END PRIVATE KEY-----
+EOS";
+
+    string ed448_public = q"EOS
+-----BEGIN PUBLIC KEY-----
+MEMwBQYDK2VxAzoASQ/pN8uTJ5KhAYxT/EjhqYl1XGXQRuQii09cPo60QFWX68xv
+Iaqa3tN7bYhbqBkxGwHtx6iSUAIA
+-----END PUBLIC KEY-----
+EOS";
+
 } // version (unittest)

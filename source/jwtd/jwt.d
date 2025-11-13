@@ -18,17 +18,22 @@ version(UsePhobos) {
 }
 
 enum JWTAlgorithm : string {
-	NONE  = "none",
-	HS256 = "HS256",
-	HS384 = "HS384",
-	HS512 = "HS512",
-	RS256 = "RS256",
-	RS384 = "RS384",
-	RS512 = "RS512",
-	ES256 = "ES256",
-	ES384 = "ES384",
-	ES512 = "ES512",
-	EdDSA = "EdDSA"
+	NONE    = "none",
+	HS256   = "HS256",
+	HS384   = "HS384",
+	HS512   = "HS512",
+	RS256   = "RS256",
+	RS384   = "RS384",
+	RS512   = "RS512",
+	Ed25519 = "Ed25519",
+	Ed448   = "Ed448",
+	ESP256  = "ESP256",
+	ESP384  = "ESP384",
+	ESP512  = "ESP512",
+	EdDSA   = "EdDSA", // Deprecated
+	ES256   = "ES256", // Deprecated
+	ES384   = "ES384", // Deprecated
+	ES512   = "ES512", // Deprecated
 }
 
 class SignException : Exception {
@@ -123,6 +128,10 @@ JSONValue decode(string token, string delegate(ref JSONValue jose) lazyKey) {
 		// toUpper for none
 		if (algName == "EDDSA") {
 		    alg = JWTAlgorithm.EdDSA;
+		} else if (algName == "ED25519") {
+		    alg = JWTAlgorithm.Ed25519;
+		} else if (algName == "ED448") {
+            alg = JWTAlgorithm.Ed448;
 		} else {
 		    alg = to!(JWTAlgorithm)(algName);
 		}
@@ -183,6 +192,11 @@ unittest {
             JWTAlgorithm.ES384 : Keys(es384_private, es384_public),
             JWTAlgorithm.ES512 : Keys(es512_private, es512_public),
             JWTAlgorithm.EdDSA : Keys(ed25519_private, ed25519_public),
+            JWTAlgorithm.ESP256 : Keys(es256_private, es256_public),
+            JWTAlgorithm.ESP384 : Keys(es384_private, es384_public),
+            JWTAlgorithm.ESP512 : Keys(es512_private, es512_public),
+            JWTAlgorithm.Ed25519 : Keys(ed25519_private, ed25519_public),
+            JWTAlgorithm.Ed448 : Keys(ed448_private, ed448_public),
         ];
     }
 
@@ -193,8 +207,12 @@ unittest {
             // JWTAlgorithm.RS384 : Keys(private384, public384),
             // JWTAlgorithm.RS512 : Keys(private512, public512),
             // JWTAlgorithm.ES256 : Keys(es256_private, es256_public),
+            // JWTAlgorithm.ESP256 : Keys(es256_private, es256_public),
             // JWTAlgorithm.ES384 : Keys(es384_private, es384_public),
+            // JWTAlgorithm.ESP384 : Keys(es384_private, es384_public),
             // JWTAlgorithm.ES512 : Keys(es512_private, es512_public),
+            // JWTAlgorithm.ESP512 : Keys(es512_private, es512_public),
+            // JWTAlgorithm.EdDSA : Keys(ed25519_private, ed25519_public),
         ];
     }
 

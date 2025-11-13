@@ -70,13 +70,13 @@ version (UseBotan) {
 			case JWTAlgorithm.RS512:
 				sign_rs("EMSA3(SHA-512)");
 				break;
-			case JWTAlgorithm.ES256:
+			case JWTAlgorithm.ES256, JWTAlgorithm.ESP256:
 				sign_es("EMSA1(SHA-256)");
 				break;
-			case JWTAlgorithm.ES384:
+			case JWTAlgorithm.ES384, JWTAlgorithm.ESP384:
 				sign_es("EMSA1(SHA-384)");
 				break;
-			case JWTAlgorithm.ES512:
+			case JWTAlgorithm.ES512, JWTAlgorithm.ESP512:
 				sign_es("EMSA1(SHA-512)");
 				break;
 			default:
@@ -125,11 +125,11 @@ version (UseBotan) {
 				return verify_rs("EMSA3(SHA-384)");
 			case JWTAlgorithm.RS512:
 				return verify_rs("EMSA3(SHA-512)");
-			case JWTAlgorithm.ES256:
+			case JWTAlgorithm.ES256, JWTAlgorithm.ESP256:
 				return verify_es("EMSA1(SHA-256)");
-			case JWTAlgorithm.ES384:
+			case JWTAlgorithm.ES384, JWTAlgorithm.ESP384:
 				return verify_es("EMSA1(SHA-384)");
-			case JWTAlgorithm.ES512:
+			case JWTAlgorithm.ES512, JWTAlgorithm.ESP512:
 				return verify_es("EMSA1(SHA-512)");
 			default:
 				throw new VerifyException("Wrong algorithm.");

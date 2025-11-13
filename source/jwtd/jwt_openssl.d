@@ -306,25 +306,25 @@ version(UseOpenSSL) {
 				sign_rs(hash.ptr, NID_sha512, 512, SHA512_DIGEST_LENGTH);
 				break;
 			}
-			case JWTAlgorithm.ES256: {
+			case JWTAlgorithm.ESP256, JWTAlgorithm.ES256: {
 				ubyte[] hash = new ubyte[SHA256_DIGEST_LENGTH];
 				SHA256(cast(const(ubyte)*)msg.ptr, msg.length, hash.ptr);
 				sign_es(NID_X9_62_prime256v1, hash.ptr, SHA256_DIGEST_LENGTH);
 				break;
 			}
-			case JWTAlgorithm.ES384: {
+			case JWTAlgorithm.ESP384, JWTAlgorithm.ES384: {
 				ubyte[] hash = new ubyte[SHA384_DIGEST_LENGTH];
 				SHA384(cast(const(ubyte)*)msg.ptr, msg.length, hash.ptr);
 				sign_es(NID_secp384r1, hash.ptr, SHA384_DIGEST_LENGTH);
 				break;
 			}
-			case JWTAlgorithm.ES512: {
+			case JWTAlgorithm.ESP512, JWTAlgorithm.ES512: {
 				ubyte[] hash = new ubyte[SHA512_DIGEST_LENGTH];
 				SHA512(cast(const(ubyte)*)msg.ptr, msg.length, hash.ptr);
 				sign_es(NID_secp521r1, hash.ptr, SHA512_DIGEST_LENGTH);
 				break;
 			}
-			case JWTAlgorithm.EdDSA: {
+			case JWTAlgorithm.EdDSA, JWTAlgorithm.Ed25519, JWTAlgorithm.Ed448: {
 			    sign_ed();
 				break;
 			}
@@ -421,22 +421,22 @@ version(UseOpenSSL) {
 				return verify_rs(hash.ptr, NID_sha512, 512, SHA512_DIGEST_LENGTH);
 			}
 
-			case JWTAlgorithm.ES256:{
+			case JWTAlgorithm.ESP256, JWTAlgorithm.ES256:{
 				ubyte[] hash = new ubyte[SHA256_DIGEST_LENGTH];
 				SHA256(cast(const(ubyte)*)signing_input.ptr, signing_input.length, hash.ptr);
 				return verify_es(NID_X9_62_prime256v1, hash.ptr, SHA256_DIGEST_LENGTH );
 			}
-			case JWTAlgorithm.ES384:{
+			case JWTAlgorithm.ESP384, JWTAlgorithm.ES384:{
 				ubyte[] hash = new ubyte[SHA384_DIGEST_LENGTH];
 				SHA384(cast(const(ubyte)*)signing_input.ptr, signing_input.length, hash.ptr);
 				return verify_es(NID_secp384r1, hash.ptr, SHA384_DIGEST_LENGTH );
 			}
-			case JWTAlgorithm.ES512: {
+			case JWTAlgorithm.ESP512, JWTAlgorithm.ES512: {
 				ubyte[] hash = new ubyte[SHA512_DIGEST_LENGTH];
 				SHA512(cast(const(ubyte)*)signing_input.ptr, signing_input.length, hash.ptr);
 				return verify_es(NID_secp521r1, hash.ptr, SHA512_DIGEST_LENGTH );
 			}
-			case JWTAlgorithm.EdDSA: {
+			case JWTAlgorithm.EdDSA, JWTAlgorithm.Ed25519, JWTAlgorithm.Ed448: {
 			    return verify_ed();
 			}
 
